@@ -2,7 +2,7 @@
 # -*- coding: iso-8859-1 -*-
 from ConfigParser import RawConfigParser
 
-import SFTPLocaweb, Mapeamento, sys
+import SFTPLocaweb, Mapeamento
 
 sftpLocaweb = SFTPLocaweb.SFTPLocaweb('../../python_conf/julianajabur/settings.ini')
 
