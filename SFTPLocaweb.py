@@ -9,15 +9,17 @@ class SFTPLocaweb:
 
     def __init__(self, caminhoArquivoConfiguracao):
         self.caminhoArquivoConfiguracao = caminhoArquivoConfiguracao
-        config = self.getConfigurationFile()
-        self.hostname = config.get('deploy', 'HOSTNAME')
-        self.port = config.getint('deploy', 'PORT')
-        self.username = config.get('deploy', 'USERNAME')
-        self.password = config.get('deploy', 'PASSWORD')
-        self.wsgi_local = config.get('deploy', 'WSGI_LOCAL')
-        self.wsgi_remoto = config.get('deploy', 'WSGI_REMOTO')
-        self.indice_md5_local = config.get('deploy', 'INDICE_MD5_LOCAL')
-        self.indice_md5_remoto = config.get('deploy', 'INDICE_MD5_REMOTO')
+        self.config = self.getConfigurationFile()
+        self.raiz_local = self.getRaizLocal()
+        self.raiz_remota = self.config.get('geral', 'RAIZ_REMOTA')
+        self.hostname = self.getEntry('deploy', 'HOSTNAME')
+        self.port = self.config.getint('deploy', 'PORT')
+        self.username = self.getEntry('deploy', 'USERNAME')
+        self.password = self.getEntry('deploy', 'PASSWORD')
+        self.wsgi_local = self.getEntry('deploy', 'WSGI_LOCAL')
+        self.wsgi_remoto = self.getEntry('deploy', 'WSGI_REMOTO')
+        self.indice_md5_local = self.getEntry('deploy', 'INDICE_MD5_LOCAL')
+        self.indice_md5_remoto = self.getEntry('deploy', 'INDICE_MD5_REMOTO')
         self.mapeamento = ''
         self.pastaOrigem = ''
         self.pastaDestino = ''
@@ -32,7 +34,15 @@ class SFTPLocaweb:
         PYTHON_CONF = os.path.abspath(self.pathJoin(BASE_DIR, self.caminhoArquivoConfiguracao))
         config = RawConfigParser()
         config.read(PYTHON_CONF)
-        return config        
+        return config
+
+    def getEntry(self, setor, chave):
+        conf = self.config.get(setor, chave)
+        if conf.startswith('RAIZ_LOCAL'):
+            conf = conf.replace('RAIZ_LOCAL', self.raiz_local)
+        if conf.startswith('RAIZ_REMOTA'):
+            conf = conf.replace('RAIZ_REMOTA', self.raiz_remota)
+        return conf
     
     def getConexaoSSH(self):
         try:
@@ -211,7 +221,15 @@ class SFTPLocaweb:
             return self.totais[chave]
         except:
             return 0
-  
+
+    def getRaizLocal(self):
+        version = sys.platform
+        if version.startswith('linux'):
+            return self.config.get('geral', 'RAIZ_LOCAL_LINUX')
+        else:
+            return self.config.get('geral', 'RAIZ_LOCAL_WINDOWS')
+
+
     def executarCopia(self):
         print '=' * 60
         print 'Local = ' + self.pastaOrigem
