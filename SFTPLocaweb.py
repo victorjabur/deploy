@@ -10,7 +10,7 @@ class SFTPLocaweb:
     def __init__(self, caminhoArquivoConfiguracao):
         self.caminhoArquivoConfiguracao = caminhoArquivoConfiguracao
         self.config = self.getConfigurationFile()
-        self.raiz_local = self.getRaizLocal()
+        self.raiz_local = self.config.get('geral', 'RAIZ_LOCAL')
         self.raiz_remota = self.config.get('geral', 'RAIZ_REMOTA')
         self.hostname = self.getEntry('deploy', 'HOSTNAME')
         self.port = self.config.getint('deploy', 'PORT')
@@ -46,7 +46,7 @@ class SFTPLocaweb:
     
     def getConexaoSSH(self):
         try:
-            print 'Estabelecendo conexão com: ', self.hostname, self.port, '...'
+            print 'Estabelecendo conexao com: ', self.hostname, self.port, '...'
             self.transport = paramiko.Transport((self.hostname, self.port))
             self.transport.connect(username=self.username, password=self.password, hostkey=None)
             self.sftp = paramiko.SFTPClient.from_transport(self.transport)
@@ -64,10 +64,10 @@ class SFTPLocaweb:
     def criarDiretorioRemoto(self, diretorio):
         try:
             self.sftp.mkdir(diretorio)
-            print '    (diretório criado) ', diretorio
+            print '    (diretorio criado) ', diretorio
             return 1
         except IOError:
-            #print '    (diretório já existe) ', diretorio
+            #print '    (diretorio ja existe) ', diretorio
             return 0
   
     def getDiretorioRemotoFromLocal(self, diretorioLocal):
@@ -132,7 +132,7 @@ class SFTPLocaweb:
                 self.statusTransferencia = self.statusTransferencia + pontos
                 sys.stdout.write(pontos * '.')
         except Exception, e:
-            print '*** Exceção Lançada: %s: %s' % (e.__class__, e)
+            print '*** Exceçao Lançada: %s: %s' % (e.__class__, e)
   
     def copiarArquivoParaServidor(self, local_file, remote_file):
         tentativas = 0
@@ -177,11 +177,11 @@ class SFTPLocaweb:
                         self.sftp.remove(remote_entry)
                         self.contabilizarTotais('arquivos_removidos', 1)
             if self.sftp.listdir != '' and not os.path.exists(self.getDiretorioLocalFromRemoto(dirRemoto)):
-                print '    (diretório removido): ', dirRemoto
+                print '    (diretorio removido): ', dirRemoto
                 self.sftp.rmdir(dirRemoto)
                 self.contabilizarTotais('diretorios_removidos', 1)
         except Exception, e:
-            print '*** Exceção Lançada ao deletar Recursos Remotos: %s: %s' % (e.__class__, e)
+            print '*** Exceçao Lançada ao deletar Recursos Remotos: %s: %s' % (e.__class__, e)
             sys.exit()
   
     def isRemoteDir (self, remote_path):
@@ -222,14 +222,6 @@ class SFTPLocaweb:
         except:
             return 0
 
-    def getRaizLocal(self):
-        version = sys.platform
-        if version.startswith('linux'):
-            return self.config.get('geral', 'RAIZ_LOCAL_LINUX')
-        else:
-            return self.config.get('geral', 'RAIZ_LOCAL_WINDOWS')
-
-
     def executarCopia(self):
         print '=' * 60
         print 'Local = ' + self.pastaOrigem
@@ -266,7 +258,7 @@ class SFTPLocaweb:
                         if self.sftp.stat(remote_file):
                             md5 = self.isArquivosIguaisMD5(local_file, remote_file)
                             if md5 == True:
-                                #print "    (não modificado):", arquivo + " (" + self.formataTamanhoArquivo(os.path.getsize(local_file)) + ")"
+                                #print "    (nao modificado):", arquivo + " (" + self.formataTamanhoArquivo(os.path.getsize(local_file)) + ")"
                                 self.contabilizarTotais('arquivos_naomodificados', 1)
                                 is_up_to_date = True
                             else:
@@ -282,17 +274,17 @@ class SFTPLocaweb:
                         self.contabilizarTotais('tentativas', self.copiarArquivoParaServidor(local_file, remote_file))
             self.deletarRecursosRemotos(self.pastaDestino)
         except Exception, e:
-            print '*** Exceção Lançada ao copiar arquivo: %s: %s' % (e.__class__, e)
+            print '*** Exceçao Lançada ao copiar arquivo: %s: %s' % (e.__class__, e)
             sys.exit()
         print '=' * 60
-        print 'Número de tentativas para erro (retry):', self.getResultadoTotal('tentativas')
-        print 'Total de diretórios criados:', self.getResultadoTotal('diretorios_criados')
+        print 'Numero de tentativas para erro (retry):', self.getResultadoTotal('tentativas')
+        print 'Total de diretorios criados:', self.getResultadoTotal('diretorios_criados')
         print 'Total de arquivos novos:', self.getResultadoTotal('arquivos_novos')
         print 'Total de arquivos modificados:', self.getResultadoTotal('arquivos_modificados')
-        print 'Total de arquivos não modificados:', self.getResultadoTotal('arquivos_naomodificados')
-        print 'Total de diretórios remotos removidos:', self.getResultadoTotal('diretorios_removidos')
+        print 'Total de arquivos nao modificados:', self.getResultadoTotal('arquivos_naomodificados')
+        print 'Total de diretorios remotos removidos:', self.getResultadoTotal('diretorios_removidos')
         print 'Total de arquivos remotos removidos:', self.getResultadoTotal('arquivos_removidos')
-        print 'Total de diretórios:', self.getResultadoTotal('diretorios')
+        print 'Total de diretorios:', self.getResultadoTotal('diretorios')
         print 'Total de arquivos:', self.getResultadoTotal('arquivos')
         print 'Completo!'
         print '=' * 60
