@@ -18,6 +18,8 @@ origem = raiz_local + '/wsgi_apps/julianajabur'
 destino = raiz_remota + '/wsgi_apps/julianajabur'
 listaIncluidos.append('*')
 listaExcluidos.append(raiz_local + '/wsgi_apps/julianajabur/julianajaburapp/public_html')
+listaExcluidos.append(raiz_local + '/wsgi_apps/julianajabur/.git')
+listaExcluidos.append(raiz_local + '/wsgi_apps/julianajabur/.idea')
 mapeamento = Mapeamento.Mapeamento(origem, destino, listaIncluidos, listaExcluidos)
 mapeamentos.append(mapeamento)
 
