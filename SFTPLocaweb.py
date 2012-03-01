@@ -2,6 +2,7 @@
 # -*- coding: iso-8859-1 -*-
 
 import os, paramiko, hashlib, sys, pickle, re, fnmatch
+import select
 from stat import S_ISREG, S_ISDIR
 from ConfigParser import RawConfigParser
 
@@ -44,7 +45,7 @@ class SFTPLocaweb:
             conf = conf.replace('RAIZ_REMOTA', self.raiz_remota)
         return conf
     
-    def getConexaoSSH(self):
+    def getConexaoSFTP(self):
         try:
             print 'Estabelecendo conexao com: ', self.hostname, self.port, '...'
             self.transport = paramiko.Transport((self.hostname, self.port))
@@ -146,8 +147,21 @@ class SFTPLocaweb:
             self.copiarArquivoParaServidor(local_file, remote_file)
         return tentativas
 
+    def coletarArquivosEstaticos(self):
+        print ''
+        print '=' * 60
+        print 'Executando o collect de arquivos estaticos'
+        print '=' * 60
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.connect(self.hostname, self.port, self.username, self.password)
+        stdin, stdout, stderr = ssh.exec_command('python2.6 /home/storage/c/6e/e5/julianajabur/wsgi_apps/horasdscon/manage.py collectstatic --noinput')
+        for line in stdout.readlines():
+            print line
+        ssh.close()
+
     def sincronizarPastas(self, mapeamentos):
-        self.getConexaoSSH()
+        self.getConexaoSFTP()
         self.carregarDicionarioMd5()
         for mapeamento in mapeamentos:
             self.mapeamento = mapeamento
@@ -165,6 +179,7 @@ class SFTPLocaweb:
     def deletarRecursosRemotos(self, dirRemoto):
         try:
             #print 'PROCESSANDO A PASTA REMOTA - ', dirRemoto
+            excluidos = self.mapeamento.listaExcluidos
             for entrada in  self.sftp.listdir(dirRemoto):
                 remote_entry = self.pathJoin(dirRemoto, entrada)
                 remote_entry = remote_entry.replace('\\','/')
@@ -172,11 +187,23 @@ class SFTPLocaweb:
                     self.deletarRecursosRemotos(remote_entry)
                 elif self.isRemoteFile(remote_entry):
                     local_file = self.getDiretorioLocalFromRemoto(remote_entry)
-                    if not os.path.exists(local_file):
+                    deletar = True
+                    for excluido in excluidos:
+                        if local_file.find(excluido) != -1:
+                            deletar = False
+                            break
+                    if not os.path.exists(local_file) and deletar:
                         print "    (arquivo removido):", remote_entry, " (" + self.formataTamanhoArquivo(self.sftp.stat(remote_entry).st_size) + ") "
                         self.sftp.remove(remote_entry)
                         self.contabilizarTotais('arquivos_removidos', 1)
-            if self.sftp.listdir != '' and not os.path.exists(self.getDiretorioLocalFromRemoto(dirRemoto)):
+            dirLocal = self.getDiretorioLocalFromRemoto(dirRemoto)
+            dirlocalexiste = os.path.exists(dirLocal)
+            deletar = True
+            for excluido in excluidos:
+                if dirLocal.find(excluido) != -1:
+                    deletar = False
+                    break
+            if self.sftp.listdir != '' and not dirlocalexiste and deletar:
                 print '    (diretorio removido): ', dirRemoto
                 self.sftp.rmdir(dirRemoto)
                 self.contabilizarTotais('diretorios_removidos', 1)

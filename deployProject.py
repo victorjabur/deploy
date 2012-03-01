@@ -1,5 +1,5 @@
 #! /usr/bin/python
-# -*- coding: iso-8859-1 -*-
+# coding: utf-8
 import SFTPLocaweb, Mapeamento, sys
 
 nome_projeto = sys.argv[1]
@@ -29,7 +29,10 @@ mapeamentos.append(mapeamento)
 
 origem = raiz_local + '/'+ nome_projeto + '/' + nome_projeto + 'app/public_html'
 destino = raiz_remota + '/public_html/' + nome_projeto
-mapeamento = Mapeamento.Mapeamento(origem, destino)
+listaIncluidos.append('*')
+listaExcluidos.append(raiz_local + '/' + nome_projeto + '/' + nome_projeto + 'app/public_html/media/static')
+mapeamento = Mapeamento.Mapeamento(origem, destino, listaIncluidos, listaExcluidos)
 mapeamentos.append(mapeamento)
 
 sftpLocaweb.sincronizarPastas(mapeamentos)
+sftpLocaweb.coletarArquivosEstaticos()
